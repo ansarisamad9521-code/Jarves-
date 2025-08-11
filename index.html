@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Hey Professor — Jarvis Demo</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:20px}
+    #log{height:350px;overflow:auto;border:1px solid #ddd;padding:10px}
+    .you{color:#333}
+    .jarvis{color:green}
+    #controls{margin-top:10px}
+  </style>
+</head>
+<body>
+  <h2>Hey Professor — Multi-language Jarvis (Demo)</h2>
+  <div id="log"></div>
+  <div id="controls">
+    <input id="inp" placeholder="Type message..." style="width:60%" />
+    <button id="send">Send</button>
+    <button id="rec">🎤 Record & Send</button>
+    <input type="file" id="afile" accept=".wav" />
+  </div>
+
+  <script>
+    const ws = new WebSocket("ws://localhost:8000/ws/chat");
+    const log = document.getElementById("log");
+    ws.onmessage = (e) => {
+      const d = JSON.parse(e.data);
+      if(d.type === "assistant_message"){
+        log.innerHTML += `<div class="jarvis"><b>Professor:</b> ${d.text}</div>`;
+        log.scrollTop = log.scrollHeight;
+      }
+    };
+    document.getElementById("send").onclick = () => {
+      const v = document.getElementById("inp").value;
+      if(!v) return;
+      log.innerHTML += `<div class="you"><b>You:</b> ${v}</div>`;
+      ws.send(JSON.stringify({type:"user_message", text:v}));
+      document.getElementById("inp").value = "";
+    };
+
+    // Upload wav file (for recorded audio)
+    document.getElementById("afile").onchange = async (e) => {
+      const f = e.target.files[0];
+      if(!f) return;
+      const form = new FormData();
+      form.append('file', f);
+      const res = await fetch('/voice', {method:'POST', body: form});
+      const j = await res.json();
+      log.innerHTML += `<div class="jarvis"><b>Professor:</b> ${j.text}</div>`;
+      log.scrollTop = log.scrollHeight;
+    };
+
+    // Simple browser recording using MediaRecorder (wav generation not trivial here)
+    document.getElementById("rec").onclick = async () => {
+      // This button prompts user to select a wav file instead; for full mic capture implement getUserMedia.
+      alert("For demo: please upload a .wav file using the file input. Full mic capture requires additional code.");
+    };
+  </script>
+</body>
+</html>
